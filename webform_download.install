@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Title Pop install file.
+ */
+
+function webform_download_schema() {
+$schema['webform_download'] = array(
+        'description' => 'Control for Title Pop.',
+          'fields' => array(
+            'webform_download' => array(
+              'type' => 'serial'),
+            'date' => array(
+              'type' => 'varchar',
+              'length' => 255,),
+            'sid' => array(
+              'type' => 'varchar',
+              'length' => 255),
+            'jic' => array(
+              'type' => 'varchar',
+              'length' => 255),
+         ),
+        'primary key' => array('webform_download'),
+     );
+   return $schema;
+}
