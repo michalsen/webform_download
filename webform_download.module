@@ -2,78 +2,27 @@
 
 function webform_download_init() {
 
-  if ( isset($_REQUEST['download']) ) {
-    
-    $latest = db_query('SELECT MAX(sid) FROM {webform_download}')->fetchObject();
-
-
-    $header = 'Date,';
-
-    $components = db_query('SELECT cid, name FROM {webform_component} WHERE type != :type ORDER BY cid ASC', array(':type' => "markup"));
-
-
-    foreach ( $components as $comp ) {
-      $header .= $comp->name . ',';
-    }
-      $data .= $header . "\n";
-
-     
-     
-  if ( $_REQUEST['download'] == 'all' ) {
-       $sids = db_query('SELECT sid, submitted FROM {webform_submissions}');
-    }
-  if ( $_REQUEST['download'] == 'new' ) {
-       $sids = db_query('SELECT sid, submitted FROM {webform_submissions} WHERE sid > :sid', array(':sid' => $latest->cid));
-     }
-
-
-    
-     foreach ( $sids as $sid ) {
-       
-       $data .= '"' . date('m/d/Y H:m', $sid->submitted) . '",'; 
-       $results = db_query('SELECT webform_submitted_data.sid, webform_submitted_data.data, submitted FROM {webform_submitted_data, webform_submissions} WHERE webform_submitted_data.sid = webform_submissions.sid AND   webform_submitted_data.sid = :sid ORDER BY webform_submitted_data.cid ASC', array(':sid' => $sid->sid));
-      
-
-          foreach ($results as $value) {
-
-                      $data .= '"' . $value->data . '",'; 
-                   }
-          $data .= "\n";
-          $latest_sid = $sid->sid;
-       }
-
- if ( $latest_sid ) {
-    db_insert('webform_download')
-         ->fields(array('date','sid'))
-         ->values(array(
-           'date'  => time(),
-           'sid'   => $latest_sid,
-         ))
-        ->execute();
- }
-     $handle = fopen("public://submissions.csv", "w");
-    fwrite($handle, $data);
-    fclose($handle);
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename=' . basename('submissions.csv'));
-    header('Expires: 0');
-    header('Cache-Control: must-revalidate');
-    header('Pragma: public');    
-    header('Content-Length: ' . filesize('public://submissions.csv'));
-    readfile('public://submissions.csv');
-    exit;
-  }
 }
 
 
 function webform_download_menu() {
 
   $items = array();
+  /*
+  $items['admin/webform_download'] = array(
+              'title' => 'Webform Submissions',
+              'page callback' => 'webform_download_admin',
+              'access arguments' => array('access webform_download_admin content'),
+              'description' => 'Webform Submissions Download Admin',
+              'access callback' => TRUE,
+              'type' => MENU_NORMAL_ITEM,
+          );
+  */        
   $items['webform_download'] = array(
               'title' => 'Webform Submissions',
               'page callback' => 'webform_download',
               'access arguments' => array('access webform_download content'),
-              'description' => 'SN Tracking Control',
+              'description' => 'Webform Submissions Download',
               'access callback' => TRUE,
               'type' => MENU_NORMAL_ITEM,
           );
@@ -87,12 +36,48 @@ function webform_download() {
     return drupal_get_form('webform_download_form');
   }
 }
-
+/*
+function webform_download_admin() {
+  global $user;
+  if ($user->uid > 0) {
+    return drupal_get_form('webform_download_admin_form');
+  }
+}
+*/
 function webform_download_form($form, $form_state) {
 
+ $results = db_query('SELECT nid, title FROM {node} WHERE type = :type', array(':type' => 'webform'));
+ $options[0] = '-- Webforms --';
+ 
+ foreach ( $results as $result ) {
+   $options[$result->nid] = $result->title;
+ }
+
    $form['markup'] = array(
-    //'#markup' => '<a href="webform_download?download=all">Download all Webform Submissions</a><br><a href="webform_download?download=new">Download Newest Webform Submissions</a>',
-    '#markup' => '<a href="webform_download?download=all" class="webform-client-form form-submit" id="edit-submit">Download All Webform Submissions</a>',
+    '#markup' => '<strong>Download Webform CSV\'s</strong>',
+  );
+
+
+   $form['webforms'] = array(
+    '#type' => 'select',
+    '#title' => t('Content Type'),
+    '#options' => $options,
+    );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Download',
+  );
+
+ $form['#submit'][] = 'webform_download_submit';
+
+  return $form;
+}
+
+function webform_download_admin_form($form, $form_state) {
+
+   $form['markup'] = array(
+    '#markup' => 'Simple Download Admin',
   );
 
 
@@ -101,11 +86,47 @@ function webform_download_form($form, $form_state) {
 
 
 
+function webform_download_submit($form, $form_state) {
+  $form_nid = $form_state['input']['webforms'];
+  download_form($form_nid);
+}
 
 
+function download_form($form_nid) {
 
+    $header = 'Date,';
+    $components = db_query('SELECT cid, name FROM {webform_component} WHERE type != :type AND nid = :nid ORDER BY cid ASC', array(':type' => "markup", ':nid' => $form_nid));
 
+    foreach ( $components as $comp ) {
+      $header .= $comp->name . ',';
+    }
+      $data = $header . "\n";
+     
+     $sids = db_query('SELECT sid, submitted FROM {webform_submissions} WHERE nid = :nid', array(':nid' => $form_nid));
 
+     foreach ( $sids as $sid ) {
+       dpm('sid: ' . $sid->sid);
+       $data .= '"' . date('m/d/Y H:m', $sid->submitted) . '",'; 
+       $results = db_query('SELECT webform_submitted_data.sid, webform_submitted_data.data, submitted FROM {webform_submitted_data, webform_submissions} WHERE webform_submitted_data.sid = webform_submissions.sid AND   webform_submitted_data.sid = :sid ORDER BY webform_submitted_data.cid ASC', array(':sid' => $sid->sid));
+           foreach ($results as $value) {
+                      $data .= '"' . $value->data . '",'; 
+                   }
+          $data .= "\n";
+       }
+
+    $handle = fopen("public://submissions.csv", "w");
+    fwrite($handle, $data);
+    fclose($handle);
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename=' . basename('submissions.csv'));
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate');
+    header('Pragma: public');    
+    header('Content-Length: ' . filesize('public://submissions.csv'));
+    readfile('public://submissions.csv');
+    exit;
+
+}
 
 
 
