@@ -12,6 +12,4 @@ TODO:
 <li>Currently downloads ALL the submitted data. Should provide the option to download only the latest.
 </ol>
 
-I have started working on the second one, and per chance you will not see this message as I have
-already fixed it, but just in case....there it is.
 
