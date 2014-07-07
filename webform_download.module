@@ -85,7 +85,7 @@ function webform_download_submit($form, $form_state) {
 function download_form($form_nid) {
 
     $header = 'Date,';
-    $components = db_query('SELECT cid, name FROM {webform_component} WHERE type != :type AND nid = :nid ORDER BY cid ASC', array(':type' => "markup", ':nid' => $form_nid));
+    $components = db_query('SELECT cid, name FROM {webform_component} WHERE type <> :type AND nid = :nid ORDER BY cid ASC', array(':type' => "markup", ':nid' => $form_nid));
 
     foreach ( $components as $comp ) {
       $header .= $comp->name . ',';
