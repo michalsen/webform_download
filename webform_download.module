@@ -1,23 +1,13 @@
 <?php
-
-function webform_download_init() {
-
-}
-
+/** 
+ * @file
+ * Simple Webform Downloader
+ */
 
 function webform_download_menu() {
 
   $items = array();
-  /*
-  $items['admin/webform_download'] = array(
-              'title' => 'Webform Submissions',
-              'page callback' => 'webform_download_admin',
-              'access arguments' => array('access webform_download_admin content'),
-              'description' => 'Webform Submissions Download Admin',
-              'access callback' => TRUE,
-              'type' => MENU_NORMAL_ITEM,
-          );
-  */        
+  
   $items['webform_download'] = array(
               'title' => 'Webform Submissions',
               'page callback' => 'webform_download',
